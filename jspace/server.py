@@ -20,6 +20,8 @@ from .runner import precompute
 DEFAULT_MODELS = [
     "Qwen/Qwen3-0.6B",
     "Qwen/Qwen3-1.7B",
+    "Qwen/Qwen3-4B",
+    "Qwen/Qwen3-8B",
     "HuggingFaceTB/SmolLM2-360M",
 ]
 
