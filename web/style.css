@@ -49,6 +49,9 @@ table.grid { border-collapse: collapse; }
 .grid th.tok { background: var(--panel); color: var(--accent); position: sticky; top: 0; cursor: pointer; z-index: 2; }
 .grid th.layer { background: var(--panel); color: var(--dim); position: sticky; left: 0; z-index: 1; }
 .grid td { cursor: pointer; color: #e8ecf5; }
+.grid td .cell-tok { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.grid td .cell-p { font-size: 10px; color: var(--dim); line-height: 1.1; }
+.grid td.strong .cell-p { color: #0b3c33; }
 .grid td:hover { outline: 1px solid var(--accent); }
 .grid td.selected { outline: 2px solid var(--accent); }
 .grid td.col-hi, .grid th.col-hi { box-shadow: inset 0 0 0 100px rgba(var(--hot), .08); }

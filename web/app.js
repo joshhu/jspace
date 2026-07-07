@@ -142,8 +142,13 @@ function renderGrid() {
     g[l].forEach((cell, pos) => {
       const td = document.createElement("td");
       const top = cell[0];
-      td.textContent = top.token.trim() || "␣";
+      const tok = Object.assign(document.createElement("div"), { className: "cell-tok" });
+      tok.textContent = top.token.trim() || "␣";
+      const prob = Object.assign(document.createElement("div"), { className: "cell-p" });
+      prob.textContent = top.p >= 0.001 ? (top.p * 100).toFixed(1) + "%" : "<0.1%";
+      td.append(tok, prob);
       td.style.background = `rgba(94, 234, 212, ${Math.min(top.p, 1) * 0.55})`;
+      if (top.p > 0.5) td.classList.add("strong");
       td.title = `L${l + 1} pos ${pos}: "${top.token}" p=${top.p}`;
       td.dataset.layer = l; td.dataset.pos = pos;
       td.onclick = () => selectCell(l, pos, td);
