@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jacobian Space Explorer</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>Jacobian Space Explorer <span class="sub">J-lens · transformer-circuits.pub/2026/workspace</span></h1>
+  <div class="controls">
+    <select id="model-select"></select>
+    <input id="custom-model" placeholder="自訂 HF 模型 ID(Enter 加入)">
+    <div class="lens-toggle" id="lens-toggle">
+      <button data-lens="jlens" class="active">J-lens</button>
+      <button data-lens="logit">logit lens</button>
+    </div>
+  </div>
+</header>
+
+<div id="precompute-banner" class="banner hidden">
+  <span id="precompute-msg"></span>
+  <button id="precompute-btn">啟動預計算</button>
+  <div class="progress hidden" id="progress-wrap"><div id="progress-bar"></div></div>
+</div>
+
+<section class="input-row">
+  <textarea id="text-input" rows="2" placeholder="輸入一段文字,顯示模型在每一層、每個位置「準備說出」的 token…">The capital of France is</textarea>
+  <button id="analyze-btn">分析</button>
+</section>
+
+<main>
+  <div id="grid-wrap"><div id="grid-empty">輸入文字後按「分析」</div></div>
+  <aside id="sidebar" class="hidden">
+    <h2 id="sidebar-title"></h2>
+    <div id="sidebar-bars"></div>
+  </aside>
+</main>
+
+<footer>格子:列 = 層(上為後期層),欄 = 輸入 token 位置;顏色深度 = top-1 機率。點格子看 top-k 分佈,點欄首 token 高亮跨層軌跡。</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>
