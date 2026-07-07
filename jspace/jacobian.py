@@ -72,6 +72,23 @@ def accumulate_prompt(
     state.n_prompts += 1
 
 
+LENGTH_BUCKETS = (64, 128, 192, 256)
+
+
+def _bucket_truncate(ids: torch.Tensor, max_tokens: int) -> torch.Tensor:
+    """把序列截到少數幾種固定長度。
+
+    大模型的反向傳播圖每種形狀都會在 CUDA caching allocator 留下一套快取塊,
+    任意長度會讓記憶體無上限成長(UMA 上尤其致命);分桶後最多 4 種形狀。
+    """
+    n = min(ids.shape[1], max_tokens)
+    target = n
+    for b in LENGTH_BUCKETS:
+        if b <= n:
+            target = b
+    return ids[:, :target]
+
+
 def estimate_jacobians(
     bundle: ModelBundle,
     prompts: Iterable[str],
@@ -90,7 +107,10 @@ def estimate_jacobians(
         ids = bundle.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_tokens).input_ids
         if ids.shape[1] < 2:
             continue
+        ids = _bucket_truncate(ids, max_tokens)
         accumulate_prompt(bundle, ids.to(bundle.device), state, num_targets=num_targets, generator=generator)
+        if state.n_prompts % 10 == 0 and torch.cuda.is_available():
+            torch.cuda.empty_cache()  # 定期把快取塊還給 OS,UMA 上避免擠壓系統記憶體
         if progress is not None:
             progress(state.n_prompts)
     return state
