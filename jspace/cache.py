@@ -48,11 +48,13 @@ def load_checkpoint(model_id: str, device: torch.device, cache_dir: Path | None 
 
 def load_jacobians(model_id: str, device: torch.device, cache_dir: Path | None = None) -> list[torch.Tensor] | None:
     d = model_cache_dir(model_id, cache_dir)
-    path = d / "jacobians.safetensors"
-    if not path.exists():
-        return None
-    tensors = load_file(str(path))
-    return [tensors[f"J_{l}"].to(device) for l in range(len(tensors))]
+    # 若存在譜收縮去噪版(大模型 MC 樣本不足時後處理產生)優先使用
+    for name in ("jacobians_denoised.safetensors", "jacobians.safetensors"):
+        path = d / name
+        if path.exists():
+            tensors = load_file(str(path))
+            return [tensors[f"J_{l}"].to(device) for l in range(len(tensors))]
+    return None
 
 
 def cache_status(model_id: str, cache_dir: Path | None = None) -> dict:
