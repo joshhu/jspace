@@ -69,10 +69,14 @@ def _find_final_norm(model: PreTrainedModel) -> nn.Module:
     base = getattr(model, "model", None) or getattr(model, "transformer", None)
     if base is None:
         raise UnsupportedArchitectureError(f"無法定位 {type(model).__name__} 的 base model")
-    for attr in ("norm", "final_layernorm", "ln_f"):
-        norm = getattr(base, attr, None)
-        if isinstance(norm, nn.Module):
-            return norm
+    # VLM 包裝(如 Qwen3_5)的 norm 在 language_model 底下,依序往內找
+    for candidate in (base, getattr(base, "language_model", None), getattr(model, "language_model", None)):
+        if candidate is None:
+            continue
+        for attr in ("norm", "final_layernorm", "ln_f"):
+            norm = getattr(candidate, attr, None)
+            if isinstance(norm, nn.Module):
+                return norm
     raise UnsupportedArchitectureError(
         f"無法在 {type(base).__name__} 找到 final norm(嘗試過 norm/final_layernorm/ln_f)"
     )
@@ -95,6 +99,9 @@ def load_model(model_id: str, device: str | None = None, dtype: torch.dtype | No
         raise UnsupportedArchitectureError(f"{model_id} 沒有 output embeddings(非 causal LM?)")
 
     cfg = model.config
+    # 多模態模型(如 qwen3_5)的層數/hidden size 巢狀在 text_config
+    if getattr(cfg, "hidden_size", None) is None and getattr(cfg, "text_config", None) is not None:
+        cfg = cfg.text_config
     num_layers = getattr(cfg, "num_hidden_layers", None) or getattr(cfg, "n_layer", None)
     d_model = getattr(cfg, "hidden_size", None) or getattr(cfg, "n_embd", None)
     if num_layers is None or d_model is None:

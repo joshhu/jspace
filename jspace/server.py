@@ -22,6 +22,7 @@ DEFAULT_MODELS = [
     "Qwen/Qwen3-1.7B",
     "Qwen/Qwen3-4B",
     "Qwen/Qwen3-8B",
+    "Qwen/Qwen3.6-27B",
     "HuggingFaceTB/SmolLM2-360M",
 ]
 
