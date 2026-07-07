@@ -36,10 +36,11 @@ lens(h_ℓ) = softmax(W_U · norm(J_ℓ · h_ℓ))
 
 ```bash
 uv sync
-uv run python -m jspace serve            # http://localhost:7860
+uv run playwright install chromium      # 僅 e2e 測試需要
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True uv run python -m jspace serve   # http://localhost:7860
 ```
 
-網頁流程:選模型 → 輸入文字 → 分析。未預計算的模型可先用 **logit lens**,按「啟動預計算」在背景計算平均 Jacobian(0.6B 模型約 1 小時,GB10),完成後自動切到 **J-lens**。
+網頁流程:選模型 → 輸入文字 → 分析。未預計算的模型可先用 **logit lens**,按「啟動預計算」在背景計算平均 Jacobian,完成後自動切到 **J-lens**。預計算每 25 條 prompt 存 checkpoint,中斷可續算。
 
 CLI 預計算:
 
@@ -48,6 +49,24 @@ uv run python -m jspace precompute Qwen/Qwen3-0.6B --num-prompts 1000
 ```
 
 快取位置:`~/.cache/jspace/<model>/jacobians.safetensors`
+
+## 支援模型與實測(DGX Spark GB10, 128GB UMA)
+
+| 模型 | 架構 | 1000 條預計算 | J 矩陣大小 |
+|---|---|---|---|
+| Qwen/Qwen3-0.6B | qwen3 | ~30 分鐘 | 113MB |
+| Qwen/Qwen3-1.7B / 4B / 8B | qwen3 | 1-8 小時(估) | 0.5-2.1GB |
+| Qwen/Qwen3.6-27B | qwen3_5(混合 linear/full attention,VLM 包裝) | ~2.5 小時 | 6.7GB |
+| 任意 HF causal LM | — | UI 輸入自訂 ID | layers × d² × 4B |
+
+qwen3_5 系列會自動以 `Qwen3_5ForCausalLM` 純文字載入(巢狀 `text_config` 與 VLM norm 定位已處理),linear attention 層的梯度反傳經測試驗證。
+
+## 大模型記憶體注意事項(UMA 平台)
+
+- **序列長度分桶**:預計算把 prompt 截到 64/128/192/256 四種固定長度。任意長度會讓 PyTorch caching allocator 為每種形狀囤一套反向傳播圖快取塊,27B 在 UMA 上以 ~1GB/prompt 成長直到耗盡
+- 每 10 條 prompt 呼叫 `torch.cuda.empty_cache()` 歸還快取;建議搭配 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+- **絕不要用 SIGKILL(`kill -9`)終止 CUDA 行程**:在 GB10/UMA 上會把已配置的記憶體洩漏在 NVIDIA 驅動層,只能靠重載驅動模組堆疊(或重開機)回收。用 SIGTERM 正常結束
+- 預計算期間避免在 UI 對同一個大模型做分析(會再載一份權重)
 
 ## 介面
 
